@@ -1,10 +1,6 @@
 #!/usr/bin/python
 
 from flask import Flask, request
-import sys
-import subprocess
-from pyparsing import nestedExpr
-from itertools import izip
 import vyatta
 
 def init_env():
