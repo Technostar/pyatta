@@ -3,7 +3,7 @@ from itertools import izip
 from pyparsing import nestedExpr
 
 
-class NoEthernetInterafaceFound(Exception): pass
+class ErrorInterafaceType(Exception): pass
 
 def _run(cmd, output=False):
     '''
@@ -52,5 +52,6 @@ def get_interfaces_infos(type='all'):
         return get_eth_ifaces(data[0][1])
     elif type == 'ovpn':
         return get_ovpn_ifaces(data[0][1])
-    else:
+    elif type == 'all':
         return dict(get_eth_ifaces(data[0][1]).items() + get_ovpn_ifaces(data[0][1]).items())
+    else: raise ErrorInterafaceType('Network interaface type not recognized')

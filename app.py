@@ -1,7 +1,10 @@
 #!/usr/bin/python
 
 from flask import Flask, request
+import sys
+import json
 import vyatta
+
 
 def init_env():
     '''
@@ -22,8 +25,16 @@ def shutdown_server():
     func()
     return 'Pyatta API shutting down...'
 
+@app.route('/api/v1.0/vyatta/intrefaces/<string:type>',methods=['GET'])
+def get_vyatta_interfaces(type):
+    try:
+        output = vyatta.get_interfaces_infos(type)
+    except vyatta.ErrorInterafaceType:
+        output = {'error':'Network interface type not recognized'}
+    return json.dumps(output)
+
 if __name__ == "__main__":
-    print vyatta.get_interfaces_infos('ovpn')
-    #if sys.argv:
+
+    if sys.argv:
         #Starting server
-        #if sys.argv[1] == 'start': app.run(host='0.0.0.0', debug = True)
+        if sys.argv[1] == 'start': app.run(host='0.0.0.0', debug = True)
