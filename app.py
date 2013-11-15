@@ -44,7 +44,7 @@ def create_ovpn_iface():
 
 if __name__ == "__main__":
 
-    vyatta.create_ovpn_interface()
+    print vyatta.create_ovpn_interface()
     #if sys.argv:
         #Starting server
         #try:
