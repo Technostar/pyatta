@@ -1,0 +1,45 @@
+#!/bin/sh
+
+EASY_RSA_DIR='/usr/share/doc/openvpn/examples/easy-rsa/2.0'
+OVPN_CONFIG_DIR='/etc/openvpn'
+ERROR_START_PYATTA="[Error] Can't start Pyatta server"
+if [ ! -f /usr/bin/vyatta-cfg-wrapper ]
+then
+    ln -s /opt/vyatta/sbin/vyatta-cfg-cmd-wrapper /usr/bin/vyatta-cfg-wrapper
+fi
+
+if [ ! -d $OVPN_CONFIG_DIR ]
+then
+    echo "[Error] No OpenVPN service detected !"
+    echo $ERROR_START_PYATTA
+    exit 1
+fi
+
+if [ ! -d ${OVPN_CONFIG_DIR}/easy-rsa ]
+then
+    if [ -d $EASY_RSA_DIR ]
+    then
+        cp -r $EASY_RSA_DIR ${OVPN_CONFIG_DIR}/easy-rsa
+    else
+        echo "[Error] PKI easy-rsa scripts are not found in $EASY_RSA_DIR"
+        echo $ERROR_START_PYATTA
+        exit 1
+    fi
+fi
+
+case "$1" in
+    #start the API
+    start)
+            echo "Starting Pyatta..."
+            /usr/bin/python /opt/pyatta/app.py start 2>1 /dev/null &;;
+    #stop the API
+    stop)
+            echo "Shutting down Pyatta..."
+            curl -i -X POST http://192.168.1.254:5000/shutdown;;
+    #restart the API
+    restart)
+            /bin/bash $0 stop
+            /bin/bash $0 start;;
+    *) echo "Usage: $0 {start/stop}"
+       exit 1;;
+esac

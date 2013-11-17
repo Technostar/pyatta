@@ -77,30 +77,35 @@ def get_interfaces_infos(type='all'):
         return dict(get_eth_ifaces(data[0][1]).items() + get_ovpn_ifaces(data[0][1]).items())
     else: raise ErrorInterafaceType('Network interaface type not recognized')
 
+def get_ovpn_iface_new_name():
+    '''
+    Get keys from "ovpn_ifaces" witch are names of ovpn interfaces and return the name of the new ovpn interface
+    '''
+    ovpn_ifaces = get_interfaces_infos('ovpn').keys()
+    i = len(ovpn_ifaces)
+    if i == 0:
+        return 'vtun0'
+    else:
+        indice = int(ovpn_ifaces[i-1][4:]) + 1
+        return '{0}{1}'.format('vtun', indice)
+    
+
 def create_ovpn_interface():
     '''
     Create vtun openvpn interface.
     If the name of openvpn interfaces are not suffixed with 'vtun' string, this function will fail.
     '''
-    '''
-    #get keys witch are names of ovpn interfaces
-    ovpn_ifaces = get_interfaces_infos('ovpn').keys()
-    i = len(ovpn_ifaces)
-    if i == 0:
-        new_name = 'vtun0'
-    else:
-        last_item = ovpn_ifaces[i-1]
-        indice = int(last_item[4:]) + 1
-        new_name = '{0}{1}'.format('vtun',indice)
-    print _run('vyatta-cfg-wrapper begin', output=True)
-    cmd = 'vyatta-cfg-wrapper set interfaces openvpn {}'.format(new_name)
-    output = _run(cmd, output=True)
-    print _run('vyatta-cfg-wrapper commit', output=True)
-    print _run('vyatta-cfg-wrapper save', output=True)
-    print _run('vyatta-cfg-wrapper end', output=True)
-    if not output:
-        return new_name
-    else: raise CannotCreateOVPNInterface(output)
+    iface_name = get_ovpn_iface_new_name()
+    ovpn_subnet = '192.168.200.0/24'
+    local_port = '1194'
+    server_name = 'vaytta'
+    client_name = 'vaytess'
+    client_host_name = 'wheezy'
+    ca_cert_file = os.path.join('/config/auth/', client_name,'ca.crt')
+    cert_file = os.path.join('/config/auth/', client_name,'{}.crt'.format(server_name))
+    key_file = os.path.join('/config/auth/', client_name,'{}.key'.format(server_name))
+    dh_file = os.path.join('/config/auth/', client_name,'dh1024.pem')
+
     '''
     try:
         #check if all RSA scripts exist
@@ -129,5 +134,38 @@ def create_ovpn_interface():
     except openvpn.DHParamsGenerationFailed:
         print "[Error] Failed to generate DH parameters"
         return False
-    #If all goes well
-    return True
+    '''
+
+    #If vyatta config session is successfully opened
+    if not _run('vyatta-cfg-wrapper begin', output=False):
+        cmd = 'vyatta-cfg-wrapper set interfaces openvpn {}'.format(iface_name)
+        out = _run(cmd, output=True)
+        if out: raise CannotCreateOVPNInterface(out)
+        cmd = 'vyatta-cfg-wrapper set interfaces openvpn {} mode server'.format(iface_name)
+        out = _run(cmd, output=True)
+        if out: raise CannotCreateOVPNInterface(out)
+        cmd = 'vyatta-cfg-wrapper set interfaces openvpn {0} server subnet {1}'.format(iface_name, ovpn_subnet)
+        out = _run(cmd, output=True)
+        if out: raise CannotCreateOVPNInterface(out)
+        cmd = 'vyatta-cfg-wrapper set interfaces openvpn {0} local-port {1}'.format(iface_name, local_port)
+        out = _run(cmd, output=True)
+        if out: raise CannotCreateOVPNInterface(out)
+        cmd = 'vyatta-cfg-wrapper set interfaces openvpn {0} tls ca-cert-file {1}'.format(iface_name, ca_cert_file)
+        out = _run(cmd, output=True)
+        if out: raise CannotCreateOVPNInterface(out)
+        cmd = 'vyatta-cfg-wrapper set interfaces openvpn {0} tls cert-file {1}'.format(iface_name, cert_file)
+        out = _run(cmd, output=True)
+        if out: raise CannotCreateOVPNInterface(out)
+        cmd = 'vyatta-cfg-wrapper set interfaces openvpn {0} tls key-file {1}'.format(iface_name, key_file)
+        out = _run(cmd, output=True)
+        if out: raise CannotCreateOVPNInterface(out)
+        cmd = 'vyatta-cfg-wrapper set interfaces openvpn {0} tls dh-file {1}'.format(iface_name, dh_file)
+        out = _run(cmd, output=True)
+        if out: raise CannotCreateOVPNInterface(out)
+        if _run('vyatta-cfg-wrapper commit', output=True): raise CannotCreateOVPNInterface(out)
+        out = _run('vyatta-cfg-wrapper save', output=True)
+        if not out.splitlines()[-1] == 'Done': raise CannotCreateOVPNInterface(out)
+        _run('vyatta-cfg-wrapper end', output=False)
+        #If all goes well
+        return True
+    return False
